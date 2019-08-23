@@ -1,0 +1,39 @@
+---
+apiVersion: extensions/v1beta1
+kind: Deployment
+metadata:
+  name: external-dns
+  namespace: external-dns
+spec:
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: external-dns
+    spec:
+      serviceAccountName: external-dns
+      containers:
+        - env:
+            - name: CF_API_EMAIL
+              valueFrom:
+                secretKeyRef:
+                  name: cloudflare
+                  key: email
+            - name: CF_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: cloudflare
+                  key: api_key
+          name: external-dns
+          image: registry.opensource.zalan.do/teapot/external-dns:v0.5.8
+          args:
+            - --source=service
+            - --source=ingress
+            - --provider=cloudflare
+            - --registry=txt
+            - --txt-owner-id=k8s
+            - --log-level=debug
+            - --cloudflare-proxied
+      imagePullSecrets:
+        - name: cloudflare-pull-secret
